@@ -1,0 +1,576 @@
+
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>حصّاد الفلوس</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;800&family=Lalezar&display=swap">
+
+<style>
+:root {
+  --bg:#0c1a14;
+  --panel:#14291f;
+  --card:#1c382a;
+  --line:#2a4a38;
+  --fg:#e9f3ec;
+  --muted:#93b3a0;
+  --brass:#f0c453;
+  --bill:#7be495;
+  --coin-hi:#ffe7a3;
+  --coin-lo:#b88a1e;
+  --coin-ink:#6a4a08;
+  --display:'Lalezar','Cairo',system-ui,sans-serif;
+  --body:'Cairo',system-ui,sans-serif;
+  color-scheme:dark;
+}
+
+html,body{height:100%}
+body{
+ margin:0;background:var(--bg);color:var(--fg);
+ font-family:var(--body);touch-action:manipulation;
+ user-select:none;
+}
+#app{height:100%;display:flex;flex-direction:column}
+#top{
+ flex:0 0 auto;display:flex;flex-direction:column;
+ align-items:center;gap:4px;padding:14px 16px 0;text-align:center
+}
+#lbl{margin:0;font-size:15px;color:var(--muted)}
+#bal{
+ margin:0;font:400 clamp(44px,14vw,68px)/1.05 var(--display);
+ color:var(--brass)
+}
+#rate{margin:0;font-size:16px;color:var(--bill)}
+#note{margin:0;font-size:14px;color:var(--muted);min-height:1.4em}
+
+#prestigeInfo{
+ color:var(--brass);
+ font-size:15px;
+ font-weight:800;
+ padding:5px 12px;
+ border:1px solid var(--line);
+ border-radius:12px;
+ background:var(--card);
+}
+
+#coinWrap{
+ position:relative;display:grid;place-items:center;
+ padding:8px 0 18px
+}
+#coin{
+ width:clamp(150px,42vw,200px);
+ aspect-ratio:1;border:0;border-radius:50%;
+ cursor:pointer;display:grid;place-items:center;
+ font:400 clamp(72px,22vw,100px)/1 var(--display);
+ color:var(--coin-ink);
+ background:radial-gradient(circle at 35% 28%,var(--coin-hi),var(--brass) 55%,var(--coin-lo));
+ box-shadow:inset 0 0 0 9px rgba(0,0,0,.12),
+ inset 0 0 0 11px rgba(255,255,255,.25),
+ 0 12px 30px rgba(0,0,0,.5);
+ transition:transform .06s ease-out
+}
+#coin:active{transform:scale(.94)}
+#fx{position:absolute;inset:0;pointer-events:none}
+.pop{
+ position:absolute;font:400 26px var(--display);
+ color:var(--bill);transform:translate(-50%,-50%);
+ animation:rise .8s ease-out forwards;white-space:nowrap
+}
+@keyframes rise{
+ to{transform:translate(-50%,-150px);opacity:0}
+}
+
+#shop{
+ flex:1 1 auto;min-height:0;overflow-y:auto;
+ display:flex;flex-direction:column;gap:10px;
+ padding:14px 16px 20px;background:var(--panel);
+ border-radius:22px 22px 0 0;border-top:1px solid var(--line)
+}
+#shop h2{margin:0 0 2px;font-size:16px;color:var(--muted)}
+
+.up{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;
+ align-items:center;gap:12px;width:100%;
+ padding:12px 14px;text-align:right;color:var(--fg);
+ font-family:var(--body);background:var(--card);
+ border:1px solid var(--line);border-radius:14px;cursor:pointer
+}
+.up:disabled{cursor:default}
+.info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.nm{font-size:17px;font-weight:800}
+.nm small{font-weight:500;font-size:13px;color:var(--muted)}
+.ds{font-size:14px;color:var(--muted);line-height:1.5}
+.pr{
+ font:400 20px var(--display);color:var(--bg);
+ background:var(--bill);border-radius:999px;
+ padding:6px 16px;white-space:nowrap
+}
+.up:disabled .pr{
+ background:transparent;color:var(--muted);
+ box-shadow:inset 0 0 0 1px var(--line)
+}
+.up:disabled .info{opacity:.7}
+
+/* Rebirth */
+#rebirth{
+ display:grid;
+ grid-template-columns:minmax(0,1fr) auto;
+ align-items:center;gap:12px;width:100%;
+ padding:15px 14px;text-align:right;
+ color:var(--fg);font-family:var(--body);
+ background:linear-gradient(135deg,#463817,#76551b);
+ border:2px solid var(--brass);
+ border-radius:16px;cursor:pointer
+}
+#rebirth:disabled{
+ background:var(--card);
+ border-color:var(--line);
+ cursor:not-allowed
+}
+#rebirth .nm{color:#ffe7a3}
+#rebirth:disabled .nm{color:var(--muted)}
+#rebirth .pr{background:var(--brass);color:#302309}
+#rebirth:disabled .pr{
+ background:transparent;color:var(--muted);
+ box-shadow:inset 0 0 0 1px var(--line)
+}
+#rebirth .ds{color:#f1e3bd}
+#rebirth:disabled .ds{color:var(--muted)}
+
+@media(prefers-reduced-motion:reduce){
+ .pop{animation-duration:.01s}
+ #coin{transition:none}
+}
+</style>
+</head>
+
+<body>
+<div id="app" dir="rtl" lang="ar">
+
+<div id="top">
+ <p id="lbl">رصيدك</p>
+ <p id="bal">٠ ج</p>
+ <p id="rate"></p>
+ <p id="prestigeInfo">إعادة الولادة: ٠ | المضاعف: ×1</p>
+ <p id="note"></p>
+
+ <div id="coinWrap">
+  <button id="coin" type="button" aria-label="اضغط عشان تجمع فلوس">ج</button>
+  <div id="fx"></div>
+ </div>
+</div>
+
+<div id="shop">
+ <h2>التطويرات</h2>
+</div>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+var KEY='harras-money-v1';
+var $=function(id){return document.getElementById(id)};
+
+var balEl=$('bal');
+var rateEl=$('rate');
+var noteEl=$('note');
+var coin=$('coin');
+var wrap=$('coinWrap');
+var fxEl=$('fx');
+var shop=$('shop');
+var prestigeInfo=$('prestigeInfo');
+
+var calm=window.matchMedia &&
+ matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var S={
+ money:0,
+ click:0,
+ reaper:0,
+ free:0,
+ factory:0,
+ mult:0,
+ rebirths:0,
+ t:Date.now()
+};
+
+var REBIRTH_COST=1000000;
+
+var UNITS=[
+ [1e15,'كوادريليون'],
+ [1e12,'تريليون'],
+ [1e9,'مليار'],
+ [1e6,'مليون'],
+ [1e3,'ألف']
+];
+
+function nf(x,d){
+ return x.toLocaleString('ar-EG',{
+  minimumFractionDigits:0,
+  maximumFractionDigits:d
+ });
+}
+
+function fmt(n,d){
+ if(!isFinite(n))return '∞';
+ for(var i=0;i<UNITS.length;i++){
+  if(n>=UNITS[i][0]){
+   return nf(n/UNITS[i][0],2)+' '+UNITS[i][1];
+  }
+ }
+ return nf(n,d===undefined?(n<100?1:0):d);
+}
+
+/* المضاعف الدائم */
+function prestigeMult(){
+ return Math.pow(2,S.rebirths);
+}
+
+/* المضاعف الإجمالي */
+function mult(){
+ return Math.pow(1.5,S.mult)*prestigeMult();
+}
+
+function clickPower(){
+ return (1+S.click)*mult();
+}
+
+function reapers(){
+ return S.reaper+S.free;
+}
+
+function rate(){
+ return reapers()*mult();
+}
+
+function freeRate(){
+ return S.factory*.2;
+}
+
+var UP=[
+ {
+  k:'click',
+  name:'قوة الضغطة',
+  base:15,
+  g:1.35,
+  desc:function(){
+   return 'كل ضغطة بتجيب '+fmt(clickPower())+' ج';
+  }
+ },
+ {
+  k:'reaper',
+  name:'ريبير',
+  base:60,
+  g:1.22,
+  desc:function(){
+   return 'عندك '+fmt(Math.floor(reapers()),0)+
+   ' ريبير بيجيبوا '+fmt(rate())+' ج في الثانية';
+  }
+ },
+ {
+  k:'factory',
+  name:'مصنع الريبير',
+  base:400,
+  g:1.6,
+  desc:function(){
+   return 'بيصنع '+fmt(freeRate(),1)+' ريبير جديد كل ثانية';
+  }
+ },
+ {
+  k:'mult',
+  name:'مضاعف الأرباح',
+  base:1000,
+  g:3,
+  desc:function(){
+   return 'كل أرباحك × '+fmt(Math.pow(1.5,S.mult));
+  }
+ }
+];
+
+function cost(u){
+ return Math.floor(u.base*Math.pow(u.g,S[u.k]));
+}
+
+/* إنشاء التطويرات */
+UP.forEach(function(u){
+ var b=document.createElement('button');
+ b.type='button';
+ b.className='up';
+ b.setAttribute('data-k',u.k);
+
+ b.innerHTML=
+ '<span class="info">'+
+ '<span class="nm"></span>'+
+ '<span class="ds"></span>'+
+ '</span>'+
+ '<span class="pr"></span>';
+
+ shop.appendChild(b);
+
+ u.el=b;
+ u.nm=b.querySelector('.nm');
+ u.ds=b.querySelector('.ds');
+ u.pr=b.querySelector('.pr');
+});
+
+/* إنشاء زر إعادة الولادة */
+var rebirthBtn=document.createElement('button');
+rebirthBtn.type='button';
+rebirthBtn.id='rebirth';
+
+rebirthBtn.innerHTML=
+ '<span class="info">'+
+ '<span class="nm">⭐ إعادة الولادة (Rebirth)</span>'+
+ '<span class="ds" id="rebirthDesc"></span>'+
+ '</span>'+
+ '<span class="pr" id="rebirthPrice"></span>';
+
+shop.appendChild(rebirthBtn);
+
+var rebirthDesc=$('rebirthDesc');
+var rebirthPrice=$('rebirthPrice');
+
+function render(){
+
+ balEl.textContent=fmt(Math.floor(S.money),0)+' ج';
+
+ var r=rate();
+
+ rateEl.textContent=r>0
+ ?'الدخل التلقائي: '+fmt(r)+' ج في الثانية'
+ :'اشتري أول ريبير عشان يجمع فلوس لوحده';
+
+ prestigeInfo.textContent=
+ 'إعادة الولادة: '+nf(S.rebirths,0)+
+ ' | المضاعف: ×'+fmt(prestigeMult());
+
+ for(var i=0;i<UP.length;i++){
+
+  var u=UP[i];
+  var c=cost(u);
+
+  u.nm.innerHTML=
+  u.name+' <small>مستوى '+nf(S[u.k],0)+'</small>';
+
+  u.ds.textContent=u.desc();
+  u.pr.textContent=fmt(c,0)+' ج';
+  u.el.disabled=S.money<c;
+ }
+
+ rebirthBtn.disabled=S.money<REBIRTH_COST;
+
+ rebirthPrice.textContent=fmt(REBIRTH_COST,0)+' ج';
+
+ rebirthDesc.textContent=
+ 'اجمع مليون جنيه وابدأ من جديد بمضاعفة أرباحك ×'+
+ fmt(prestigeMult()*2)+'!';
+}
+
+/* حفظ اللعبة */
+function save(){
+ S.t=Date.now();
+ try{
+  localStorage.setItem(KEY,JSON.stringify(S));
+ }catch(e){}
+}
+
+function say(text){
+ noteEl.textContent=text;
+ clearTimeout(say.h);
+ say.h=setTimeout(function(){
+  noteEl.textContent='';
+ },6000);
+}
+
+/* الأرباح أثناء الغياب */
+function offline(){
+ var secs=Math.min((Date.now()-S.t)/1000,7200);
+ if(secs<10)return;
+
+ var gain=rate()*secs*.5;
+
+ if(gain>=1){
+  S.money+=gain;
+  say('وانت غايب الريبير جمّع '+fmt(Math.floor(gain),0)+' ج');
+ }
+
+ S.t=Date.now();
+}
+
+/* تحميل الحفظ القديم والجديد */
+try{
+ var raw=localStorage.getItem(KEY);
+
+ if(raw){
+  var d=JSON.parse(raw);
+
+  for(var k in S){
+   if(typeof d[k]==='number'&&isFinite(d[k])){
+    S[k]=d[k];
+   }
+  }
+ }
+}catch(e){}
+
+offline();
+
+/* تأثير الضغط */
+function pop(x,y,text){
+ if(calm)return;
+
+ var s=document.createElement('span');
+ s.className='pop';
+ s.textContent=text;
+ s.style.left=x+'px';
+ s.style.top=y+'px';
+
+ s.addEventListener('animationend',function(){
+  s.remove();
+ });
+
+ fxEl.appendChild(s);
+
+ if(fxEl.childNodes.length>24){
+  fxEl.removeChild(fxEl.firstChild);
+ }
+}
+
+function tap(x,y){
+ var p=clickPower();
+
+ S.money+=p;
+
+ pop(x,y,'+'+fmt(p));
+
+ render();
+}
+
+coin.addEventListener('pointerdown',function(e){
+ var r=wrap.getBoundingClientRect();
+ tap(e.clientX-r.left,e.clientY-r.top);
+});
+
+coin.addEventListener('click',function(e){
+ if(e.detail===0){
+  tap(wrap.clientWidth/2,wrap.clientHeight/2);
+ }
+});
+
+/* شراء التطويرات */
+shop.addEventListener('click',function(e){
+
+ var b=e.target.closest('.up');
+
+ if(!b||b.disabled)return;
+
+ for(var i=0;i<UP.length;i++){
+
+  var u=UP[i];
+
+  if(u.k===b.getAttribute('data-k')){
+
+   var c=cost(u);
+
+   if(S.money>=c){
+    S.money-=c;
+    S[u.k]++;
+    render();
+    save();
+   }
+
+   return;
+  }
+ }
+});
+
+/* نظام إعادة الولادة */
+rebirthBtn.addEventListener('click',function(){
+
+ if(S.money<REBIRTH_COST){
+  say('لازم تجمع مليون جنيه الأول!');
+  return;
+ }
+
+ var nextMult=prestigeMult()*2;
+
+ var confirmed=window.confirm(
+  'هل أنت متأكد من إعادة الولادة؟\n\n'+
+  'سيتم تصفير الفلوس وجميع التطويرات.\n\n'+
+  'لكن ستحصل على مضاعف دائم ×'+fmt(nextMult)+'!\n\n'+
+  'عدد مرات إعادة الولادة بعد العملية: '+(S.rebirths+1)
+ );
+
+ if(!confirmed)return;
+
+ /* تصفير كل التطويرات والفلوس */
+ S.money=0;
+ S.click=0;
+ S.reaper=0;
+ S.free=0;
+ S.factory=0;
+ S.mult=0;
+
+ /* الاحتفاظ بعدد مرات إعادة الولادة */
+ S.rebirths++;
+
+ render();
+ save();
+
+ say('مبروك! بدأت من جديد بمضاعف ×'+fmt(prestigeMult())+' 🎉');
+
+ shop.scrollTop=0;
+});
+
+/* التشغيل التلقائي */
+var last=performance.now();
+var acc=0;
+var saveT=0;
+
+function tick(now){
+
+ requestAnimationFrame(tick);
+
+ var dt=Math.min(.25,(now-last)/1000);
+ last=now;
+
+ if(document.hidden)return;
+
+ S.free+=freeRate()*dt;
+ S.money+=rate()*dt;
+
+ acc+=dt;
+
+ if(acc>=.1){
+  acc=0;
+  render();
+ }
+
+ saveT+=dt;
+
+ if(saveT>=5){
+  saveT=0;
+  save();
+ }
+}
+
+document.addEventListener('visibilitychange',function(){
+ if(document.hidden){
+  save();
+ }else{
+  offline();
+  last=performance.now();
+ }
+});
+
+window.addEventListener('pagehide',save);
+
+render();
+requestAnimationFrame(tick);
+
+})();
+</script>
+</body>
+</html>
